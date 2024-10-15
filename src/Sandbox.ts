@@ -7,6 +7,7 @@ const client = new AsteraiClient({
 });
 
 (async () => {
-  const response = await client.query("Hello, world!");
-  console.log(require('util').inspect(response, { depth: null }));
+  client.queryStream("Hello, world!", (chunk) => {
+    console.log(chunk);
+  });
 })();

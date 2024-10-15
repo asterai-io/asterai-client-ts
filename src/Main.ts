@@ -10,29 +10,34 @@ export default class AsteraiClient {
     this.logs = params.logs || false;
   }
 
-  public async query(query: string): Promise<AsteraiResponse> {
+  public async queryStream(query: string, callback: (chunk: string) => void): Promise<void> {
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
 
     try {
-      const response = await fetch(`https://api.asterai.io/app/${this.appID}/query/sse`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.queryKey}`,
-        },
-        body: query,
-        signal: signal,
-      });
+      const reader = await this.sseQuery(query, signal);
+      const decoder = new TextDecoder();
 
-      if (!response.ok) {
-        throw new Error(`HTTP status error: ${response.status}`);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        callback(chunk);  
       }
-
-      if (!response.body) {
-        throw new Error('ReadableStream not supported');
+    } catch (error) {
+      if (this.logs) {
+        console.error('Error:', error);
       }
+      throw error;
+    }
+  }
 
-      const reader = response.body.getReader();
+  public async queryOneshot(query: string): Promise<AsteraiResponse> {
+    this.abortController = new AbortController();
+    const signal = this.abortController.signal;
+
+    try {
+      const reader = await this.sseQuery(query, signal);
       const decoder = new TextDecoder();
       let responseObject: AsteraiResponse = { llm: '', plugin: '' };
       while (true) {
@@ -43,10 +48,6 @@ export default class AsteraiClient {
         
         responseObject.llm += filteredChunk.llm.join('');
         responseObject.plugin += filteredChunk.plugin.join('');
-
-        if (this.logs) {
-          console.log('Filtered Chunk:', filteredChunk);
-        }
       }
 
       return responseObject;
@@ -58,7 +59,7 @@ export default class AsteraiClient {
     }
   }
 
-  private filterChunk(chunk: string): { llm: string[], plugin: string[] } {
+  public filterChunk(chunk: string): { llm: string[], plugin: string[] } {
     const result: {
       llm: string[],
       plugin: string[]
@@ -89,6 +90,27 @@ export default class AsteraiClient {
     return token
       .replace(/\\n/g, '')
       .replace(/\\/g, '');
+  }
+
+  private async sseQuery(query: string, signal: AbortSignal): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+    const response = await fetch(`https://api.asterai.io/app/${this.appID}/query/sse`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.queryKey}`,
+      },
+      body: query,
+      signal: signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP status error: ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error('ReadableStream not supported');
+    }
+    
+    return response.body.getReader();
   }
 
   public abort(): void {
