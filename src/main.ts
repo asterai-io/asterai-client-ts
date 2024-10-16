@@ -15,7 +15,7 @@ export default class AsteraiClient {
     this.conversationID = conversationID;
   }
 
-  public async query(query: string, callback: (chunk: string) => void, doneCallback?: () => void): Promise<void> {
+  public async query(query: string, callback: (chunk: AsteraiResponse) => void, doneCallback?: () => void): Promise<void> {
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
 
@@ -32,7 +32,7 @@ export default class AsteraiClient {
           break;
         }
         const chunk = decoder.decode(value, { stream: true });
-        callback(chunk);  
+        callback(this.parseMessage(chunk));
       }
     } catch (error) {
       if (this.logs) {
@@ -49,15 +49,15 @@ export default class AsteraiClient {
     try {
       const reader = await this.sseQuery(query, signal);
       const decoder = new TextDecoder();
-      let responseObject: AsteraiResponse = { llm: '', plugin: '' };
+      let responseObject: AsteraiResponse = { llm: [], plugin: [] };
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        const filteredChunk = this.filterChunk(chunk);
+        const parsedMessage = this.parseMessage(chunk);
         
-        responseObject.llm += filteredChunk.llm.join('');
-        responseObject.plugin += filteredChunk.plugin.join('');
+        responseObject.llm = [...responseObject.llm, ...parsedMessage.llm];
+        responseObject.plugin = [...responseObject.plugin, ...parsedMessage.plugin];
       }
 
       return responseObject;
@@ -69,24 +69,21 @@ export default class AsteraiClient {
     }
   }
 
-  public filterChunk(chunk: string): { llm: string[], plugin: string[] } {
-    const result: {
-      llm: string[],
-      plugin: string[]
-    } = {
+  public parseMessage(message: string): AsteraiResponse {
+    const result: AsteraiResponse = {
       llm: [],
       plugin: []
     };
-    const lines = chunk.split('\n');
 
+    const lines = message.split('\n');
     for (const line of lines) {
       if (line.includes('data: llm-token: ')) {
         const token = line.split('data: llm-token: ')[1];
         result.llm.push(
           this.cleanToken(token)
         );
-      } else if (line.includes('data: plugin-token: ')) {
-        const token = line.split('data: plugin-token: ')[1];
+      } else if (line.includes('data: plugin-output: ')) {
+        const token = line.split('data: plugin-output: ')[1];
         result.plugin.push(
           this.cleanToken(token)
         );
@@ -144,6 +141,6 @@ interface AsteraiClientParams {
 }
 
 interface AsteraiResponse {
-  llm?: string,
-  plugin?: string,
+  llm: string[];
+  plugin: string[];
 }
