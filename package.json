@@ -5,17 +5,21 @@
   "main": "dist/Main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "rm -rf dist && tsc",
-    "debug": "ts-node src/Sandbox.ts"
+    "build": "webpack-cli",
+    "debug": "node dist/sandbox.js"
   },
   "keywords": [],
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "typescript": "^5.6.3"
+    "sse.js": "^2.5.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.6.3",
+    "xhr2": "^0.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "webpack-cli": "^5.1.4"
   }
 }
