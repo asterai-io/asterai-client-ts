@@ -1,4 +1,4 @@
-import AsteraiClient from "./Main";
+import AsteraiClient from "./main";
 
 const client = new AsteraiClient({
   queryKey: "fc8f63e9-4f01-49d8-9c70-68b1ba0ee3b0",
@@ -7,7 +7,7 @@ const client = new AsteraiClient({
 });
 
 (async () => {
-  client.queryStream("Hello, world!", (chunk) => {
+  client.query("Hello, world!", (chunk) => {
     console.log(chunk);
   });
 })();

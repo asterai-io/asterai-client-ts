@@ -15,7 +15,7 @@ export default class AsteraiClient {
     this.conversationID = conversationID;
   }
 
-  public async queryStream(query: string, callback: (chunk: string) => void): Promise<void> {
+  public async query(query: string, callback: (chunk: string) => void, doneCallback?: () => void): Promise<void> {
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
 
@@ -25,7 +25,12 @@ export default class AsteraiClient {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          if (doneCallback) {
+            doneCallback();
+          }
+          break;
+        }
         const chunk = decoder.decode(value, { stream: true });
         callback(chunk);  
       }
