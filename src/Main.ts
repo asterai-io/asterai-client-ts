@@ -3,11 +3,16 @@ export default class AsteraiClient {
   private readonly appID: string;
   private logs: boolean;
   private abortController: AbortController | null = null;
+  private conversationID: string | null = null;
 
   constructor(params: AsteraiClientParams) {
     this.queryKey = params.queryKey;
     this.appID = params.appID;
     this.logs = params.logs || false;
+  }
+
+  public setConversationID(conversationID: string): void {
+    this.conversationID = conversationID;
   }
 
   public async queryStream(query: string, callback: (chunk: string) => void): Promise<void> {
@@ -93,7 +98,13 @@ export default class AsteraiClient {
   }
 
   private async sseQuery(query: string, signal: AbortSignal): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-    const response = await fetch(`https://api.asterai.io/app/${this.appID}/query/sse`, {
+    let url = `https://api.asterai.io/app/${this.appID}/query/sse`;
+    
+    if (this.conversationID) {
+      url += `?conversation_id=${encodeURIComponent(this.conversationID)}`;
+    }
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.queryKey}`,
