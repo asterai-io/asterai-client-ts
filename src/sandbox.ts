@@ -1,13 +1,16 @@
 import AsteraiClient from "./main";
 
 const client = new AsteraiClient({
-  queryKey: "fc8f63e9-4f01-49d8-9c70-68b1ba0ee3b0",
-  appID: "112fd160-c6e6-4258-bcd1-16cb84bca464",
+  queryKey: "4b15a82a-9910-4705-ad3a-4a8a881055cc",
+  appID: "e530aea4-ccd5-4a25-bf8e-bc8b33a3b6b4",
   logs: true,
 });
 
 (async () => {
-  client.query("Hello, world!", (chunk) => {
-    console.log(chunk);
+  client.query("buy 3 eth on hyperliquid", (chunk) => {
+    if (chunk.plugin.length > 0) {
+      const decodedMessage = client.decodePluginMessage(chunk.plugin[0]);
+      console.log(decodedMessage);
+    }
   });
 })();

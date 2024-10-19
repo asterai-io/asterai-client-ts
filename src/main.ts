@@ -1,14 +1,22 @@
+import { readFileSync } from "fs";
+import { loadSync, parse } from 'protobufjs';
+import { Buffer } from 'buffer';
+
 export default class AsteraiClient {
   private readonly queryKey: string;
   private readonly appID: string;
   private logs: boolean;
   private abortController: AbortController | null = null;
   private conversationID: string | null = null;
+  // private baseURL: string = "https://api.asterai.io";
+  private baseURL: string = "http://localhost:3030";
+  private pluginProtos: PluginProtos;
 
   constructor(params: AsteraiClientParams) {
     this.queryKey = params.queryKey;
     this.appID = params.appID;
     this.logs = params.logs || false;
+    this.pluginProtos = this.downloadPluginProtos();
   }
 
   public setConversationID(conversationID: string): void {
@@ -100,7 +108,7 @@ export default class AsteraiClient {
   }
 
   private async sseQuery(query: string, signal: AbortSignal): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-    let url = `https://api.asterai.io/app/${this.appID}/query/sse`;
+    let url = `${this.baseURL}/app/${this.appID}/query/sse`;
     
     if (this.conversationID) {
       url += `?conversation_id=${encodeURIComponent(this.conversationID)}`;
@@ -132,15 +140,85 @@ export default class AsteraiClient {
       this.abortController = null;
     }
   }
+
+  private downloadPluginProtos(): PluginProtos {
+    // const url = `${this.baseURL}/protos`;
+    // const response = await fetch(url, {
+    //   method: 'GET',
+    //   headers: {
+    //     'Authorization': `Bearer ${this.queryKey}`,
+    //   },
+    // });
+
+    // TODO: actually implement authentication and download it for real
+    return JSON.parse(readFileSync('./mockProtos.json', 'utf8'));
+  }
+
+  public decodePluginMessage(message: string): string | undefined {
+    const [functionName, encodedMessage] = message.split(':');
+    
+    // Find the relevant proto
+    let rawProto: PluginProto | undefined;
+    for (const workingProto of this.pluginProtos.protos) {
+      if (workingProto.proto.includes(functionName)) {
+        rawProto = workingProto;
+        break;
+      }
+    }
+    if (!rawProto) {
+      if (this.logs) {
+        console.error(`No proto found for ${functionName}`);
+      }
+      return;
+    }
+
+    const root = parse(`
+      syntax = "proto3";
+      ${rawProto.proto}
+    `).root;
+    const MessageType = root.lookupType(functionName);
+    if (!MessageType) {
+      if (this.logs) {
+        console.error(`No message type found for ${functionName}`);
+      }
+      return;
+    }
+
+    try {
+      const buffer = Buffer.from(encodedMessage, 'base64');
+      const decodedMessage = MessageType.decode(buffer);
+      const object = MessageType.toObject(decodedMessage, {
+        longs: String,
+        enums: String,
+        bytes: String,
+      });
+
+      return JSON.stringify(object, null, 2);
+    } catch (error) {
+      if (this.logs) {
+        console.error(`Error decoding message: ${error}`);
+      }
+      return;
+    }
+  }
 }
 
-interface AsteraiClientParams {
+type AsteraiClientParams = {
   queryKey: string;
   appID: string;
   logs?: boolean;
 }
 
-interface AsteraiResponse {
+type AsteraiResponse = {
   llm: string[];
   plugin: string[];
+}
+
+type PluginProtos = {
+  protos: PluginProto[];
+}
+
+type PluginProto = {
+  name: string;
+  proto: string;
 }
