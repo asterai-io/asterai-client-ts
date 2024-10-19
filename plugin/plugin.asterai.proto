@@ -1,0 +1,17 @@
+syntax = "proto3";
+import "node_modules/@asterai/sdk/protobuf/asterai.proto";
+
+service Trading {
+  rpc trade(TradeInput) returns (TradeInput);
+}
+
+message TradeInput {
+  // The symbol of the desired token, eg "ETH", "BTC", "UNI"
+  string pair = 1;
+  // The amount of the desired token, "1", "0.2", "1000"
+  string amount = 2;
+  // The direction of trade, valid values are "buy" or "sell"
+  string direction = 3;
+  // The exchange to use, valid values are "hyperliquid", "vertex"
+  string exchange = 4;
+}
