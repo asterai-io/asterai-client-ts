@@ -2,3 +2,4 @@ dist/
 .idea/
 .vscode/
 node_modules/
+file_generated_by_asterai_codegen.json

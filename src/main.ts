@@ -1,21 +1,21 @@
 import { parse } from 'protobufjs';
 import { Buffer } from 'buffer';
 import { readFileSync } from 'fs';
+import axios from 'axios';
 
 export default class AsteraiClient {
   private readonly queryKey: string;
   private readonly appID: string;
-  private readonly apiKey: string;
   private logs: boolean;
   private abortController: AbortController | null = null;
   private conversationID: string | null = null;
-  private static baseURL: string = "https://api.asterai.io";
+  // private static baseURL: string = "https://api.asterai.io";
+  private static baseURL: string = "http://localhost:3030";
   private pluginProtos: PluginProtos;
 
   public constructor(params: AsteraiClientParams) {
     this.queryKey = params.queryKey;
     this.appID = params.appID;
-    this.apiKey = params.apiKey;
     this.logs = params.logs || false;
     this.pluginProtos = JSON.parse(
       readFileSync(
@@ -50,33 +50,6 @@ export default class AsteraiClient {
       }
     } catch (error) {
       if (this.logs) {
-        console.error('Error:', error);
-      }
-      throw error;
-    }
-  }
-
-  public async queryOneshot(query: string): Promise<AsteraiResponse> {
-    this.abortController = new AbortController();
-    const signal = this.abortController.signal;
-
-    try {
-      const reader = await this.sseQuery(query, signal);
-      const decoder = new TextDecoder();
-      let responseObject: AsteraiResponse = { llm: [], plugin: [] };
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const parsedMessage = this.parseMessage(chunk);
-        
-        responseObject.llm = [...responseObject.llm, ...parsedMessage.llm];
-        responseObject.plugin = [...responseObject.plugin, ...parsedMessage.plugin];
-      }
-
-      return responseObject;
-    } catch (error) {
-      if (this.logs) { 
         console.error('Error:', error);
       }
       throw error;
@@ -120,24 +93,33 @@ export default class AsteraiClient {
       url += `?conversation_id=${encodeURIComponent(this.conversationID)}`;
     }
 
-    const response = await fetch(url, {
+    const response = await axios({
       method: 'POST',
+      url,
       headers: {
         'Authorization': `Bearer ${this.queryKey}`,
       },
-      body: query,
-      signal: signal,
+      data: query,
+      signal,
+      responseType: 'stream',
     });
 
-    if (!response.ok) {
+    if (response.status !== 200) {
       throw new Error(`HTTP status error: ${response.status}`);
     }
 
-    if (!response.body) {
-      throw new Error('ReadableStream not supported');
-    }
-    
-    return response.body.getReader();
+    const stream = response.data;
+    const readableStream = new ReadableStream({
+      start(controller) {
+        stream.on('data', (chunk: Buffer) => {
+          controller.enqueue(new Uint8Array(chunk));
+        });
+        stream.on('end', () => controller.close());
+        stream.on('error', (error: Error) => controller.error(error));
+      },
+    });
+
+    return readableStream.getReader();
   }
 
   public abort(): void {
@@ -199,7 +181,6 @@ export default class AsteraiClient {
 type AsteraiClientParams = {
   queryKey: string;
   appID: string;
-  apiKey: string;
   logs?: boolean;
   pluginProtosPath: string;  
 }

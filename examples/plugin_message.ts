@@ -10,8 +10,7 @@ interface TradeRequest {
 const client = new AsteraiClient({
   queryKey: "4b15a82a-9910-4705-ad3a-4a8a881055cc",
   appID: "e530aea4-ccd5-4a25-bf8e-bc8b33a3b6b4",
-  apiKey: "50a54149-4b5f-475f-ad95-c40d84634a21",
-  pluginProtosPath: "./file_generated_by_asterai_codegen .json",
+  pluginProtosPath: "./file_generated_by_asterai_codegen.json",
 });
 
 (async () => {
