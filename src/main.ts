@@ -9,8 +9,7 @@ export default class AsteraiClient {
   private logs: boolean;
   private abortController: AbortController | null = null;
   private conversationID: string | null = null;
-  // private static baseURL: string = "https://api.asterai.io";
-  private static baseURL: string = "http://localhost:3030";
+  private static baseURL: string = "https://api.asterai.io";
   private pluginProtos: PluginProtos;
 
   public constructor(params: AsteraiClientParams) {
