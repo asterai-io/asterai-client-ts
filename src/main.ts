@@ -1,22 +1,28 @@
-import { readFileSync } from "fs";
-import { loadSync, parse } from 'protobufjs';
+import { parse } from 'protobufjs';
 import { Buffer } from 'buffer';
+import { readFileSync } from 'fs';
 
 export default class AsteraiClient {
   private readonly queryKey: string;
   private readonly appID: string;
+  private readonly apiKey: string;
   private logs: boolean;
   private abortController: AbortController | null = null;
   private conversationID: string | null = null;
-  // private baseURL: string = "https://api.asterai.io";
-  private baseURL: string = "http://localhost:3030";
+  private static baseURL: string = "https://api.asterai.io";
   private pluginProtos: PluginProtos;
 
-  constructor(params: AsteraiClientParams) {
+  public constructor(params: AsteraiClientParams) {
     this.queryKey = params.queryKey;
     this.appID = params.appID;
+    this.apiKey = params.apiKey;
     this.logs = params.logs || false;
-    this.pluginProtos = this.downloadPluginProtos();
+    this.pluginProtos = JSON.parse(
+      readFileSync(
+        params.pluginProtosPath,
+        'utf-8'
+      )
+    );
   }
 
   public setConversationID(conversationID: string): void {
@@ -108,7 +114,7 @@ export default class AsteraiClient {
   }
 
   private async sseQuery(query: string, signal: AbortSignal): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-    let url = `${this.baseURL}/app/${this.appID}/query/sse`;
+    let url = `${AsteraiClient.baseURL}/app/${this.appID}/query/sse`;
     
     if (this.conversationID) {
       url += `?conversation_id=${encodeURIComponent(this.conversationID)}`;
@@ -141,20 +147,7 @@ export default class AsteraiClient {
     }
   }
 
-  private downloadPluginProtos(): PluginProtos {
-    // const url = `${this.baseURL}/protos`;
-    // const response = await fetch(url, {
-    //   method: 'GET',
-    //   headers: {
-    //     'Authorization': `Bearer ${this.queryKey}`,
-    //   },
-    // });
-
-    // TODO: actually implement authentication and download it for real
-    return JSON.parse(readFileSync('./mockProtos.json', 'utf8'));
-  }
-
-  public decodePluginMessage(message: string): string | undefined {
+  public decodePluginMessage<T>(message: string): T | undefined {
     const [functionName, encodedMessage] = message.split(':');
     
     // Find the relevant proto
@@ -193,7 +186,7 @@ export default class AsteraiClient {
         bytes: String,
       });
 
-      return JSON.stringify(object, null, 2);
+      return object as T;
     } catch (error) {
       if (this.logs) {
         console.error(`Error decoding message: ${error}`);
@@ -206,7 +199,9 @@ export default class AsteraiClient {
 type AsteraiClientParams = {
   queryKey: string;
   appID: string;
+  apiKey: string;
   logs?: boolean;
+  pluginProtosPath: string;  
 }
 
 type AsteraiResponse = {
