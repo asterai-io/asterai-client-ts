@@ -6,7 +6,7 @@ import { createParser, ParseEvent } from "eventsource-parser";
 export default class AsteraiClient {
   private readonly queryKey: string;
   private readonly appId: string;
-  private logs: boolean;
+  private shouldEmitLogs: boolean;
   private conversationId: string | null = null;
   private static baseUrl: string = "https://api.asterai.io";
   private pluginProtos: Root[] = [];
@@ -14,7 +14,7 @@ export default class AsteraiClient {
   public constructor(params: AsteraiClientParams) {
     this.queryKey = params.queryKey;
     this.appId = params.appId;
-    this.logs = params.shouldEmitLogs || false;
+    this.shouldEmitLogs = params.shouldEmitLogs || false;
 
     if (params.pluginProtos) {
       const parsedProtoFile = JSON.parse(
@@ -47,7 +47,7 @@ export default class AsteraiClient {
 
       return signal;
     } catch (error) {
-      if (this.logs) {
+      if (this.shouldEmitLogs) {
         console.error('Error:', error);
       }
       throw error;
@@ -125,7 +125,7 @@ export default class AsteraiClient {
     }
 
     if (!messageType) {
-      if (this.logs) {
+      if (this.shouldEmitLogs) {
         console.error(`No message type found for ${functionName}`);
       }
       return;
@@ -142,7 +142,7 @@ export default class AsteraiClient {
 
       return object as T;
     } catch (error) {
-      if (this.logs) {
+      if (this.shouldEmitLogs) {
         console.error(`Error decoding message: ${error}`);
       }
       return;
