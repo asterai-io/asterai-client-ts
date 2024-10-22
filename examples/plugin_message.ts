@@ -9,18 +9,18 @@ interface TradeRequest {
 }
 
 const client = new AsteraiClient({
-  queryKey: "4b15a82a-9910-4705-ad3a-4a8a881055cc",
-  appID: "e530aea4-ccd5-4a25-bf8e-bc8b33a3b6b4",
+  queryKey: "b055db25-8e2d-4cd3-af37-c689b67dc8ea",
+  appID: "b79b1150-bc9c-44a2-a899-6fc568f7ac86",
   pluginProtos: readFileSync("./file_generated_by_asterai_codegen.json", "utf-8"),
 });
 
 (async () => {
 
   client.query("buy 3 eth on hyperliquid", (chunk) => {
-    if (chunk.plugin.length > 0) {
-      const decodedMessage = client.decodePluginMessage<TradeRequest>(chunk.plugin[0]);
-      if (decodedMessage) {
-        console.log(`Received trade request: ${decodedMessage.direction} ${decodedMessage.amount} ${decodedMessage.pair} ON ${decodedMessage.exchange}`);
+    if (chunk.startsWith("TradeInput:")) {
+      const tradeRequest = client.decodePluginMessage<TradeRequest>(chunk);
+      if (tradeRequest) {
+        console.log(`Received trade request: ${tradeRequest.direction} ${tradeRequest.amount} @ ${tradeRequest.pair} on ${tradeRequest.exchange}`);
       }
     }
   });

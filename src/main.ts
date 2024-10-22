@@ -21,7 +21,8 @@ export default class AsteraiClient {
       const parsedProtoFile = JSON.parse(
         params.pluginProtos,
       );
-      for (let proto of parsedProtoFile) {
+
+      for (let proto of parsedProtoFile.protos) {
         this.pluginProtos.push(
           parse(`
             syntax = "proto3";
@@ -37,16 +38,15 @@ export default class AsteraiClient {
     this.conversationId = conversationId;
   }
 
-  public async query(query: string, callback: (chunk: AsteraiResponse) => void): Promise<void> {
-    this.abortController = new AbortController();
-    const signal = this.abortController.signal;
-
+  public async query(query: string, callback: (chunk: string) => void): Promise<AbortSignal> {
     try {
-      await this.sseQuery(query, signal, (chunk) => {
+      const signal = await this.sseQuery(query, (chunk) => {
         callback(
           this.parseMessage(chunk)
         )
       });
+
+      return signal;
     } catch (error) {
       if (this.logs) {
         console.error('Error:', error);
@@ -55,30 +55,20 @@ export default class AsteraiClient {
     }
   }
 
-  private parseMessage(chunk: string): AsteraiResponse {
-    const result: AsteraiResponse = {
-      llm: [],
-      plugin: []
-    };
-
+  private parseMessage(chunk: string): string {
     if (chunk.startsWith('llm-token: ')) {
-      const token = chunk.slice('llm-token: '.length);
-      result.llm.push(this.cleanToken(token));
+      return chunk.slice('llm-token: '.length);
     } else if (chunk.startsWith('plugin-output: ')) {
-      const token = chunk.slice('plugin-output: '.length);
-      result.plugin.push(this.cleanToken(token));
+      return chunk.slice('plugin-output: '.length);
     }
 
-    return result;
+    return '';
   }
 
-  private cleanToken(token: string): string {
-    return token
-      .replace(/\\n/g, '')
-      .replace(/\\/g, '');
-  }
+  private async sseQuery(query: string, chunkCallback: (chunk: string) => void): Promise<AbortSignal> {
+    const abortController = new AbortController();
+    const signal = abortController.signal;
 
-  private async sseQuery(query: string, signal: AbortSignal, chunkCallback: (chunk: string) => void): Promise<void> {
     let url = `${AsteraiClient.baseUrl}/app/${this.appId}/query/sse`;
     
     if (this.conversationId) {
@@ -113,6 +103,8 @@ export default class AsteraiClient {
     response.data.on('data', (chunk: Event) => {
       parser.feed(chunk.toString());
     });
+
+    return signal;
   }
 
 
@@ -124,13 +116,20 @@ export default class AsteraiClient {
   }
 
   public decodePluginMessage<T>(message: string): T | undefined {
-    const [functionName, encodedMessage] = message.split(':');
-
+    const splitMessage = message.split(':');
+    const functionName = splitMessage[0];
+    const encodedMessage = splitMessage[1].slice(1);
+    
+    
     let messageType: Type | undefined;
     for (let proto of this.pluginProtos) {
-      messageType = proto.lookupType(functionName);
-      if (messageType) {
-        break;
+      try {
+        messageType = proto.lookupType(functionName);
+        if (messageType) {
+          break;
+        }
+      } catch (error) {
+        continue;
       }
     }
 
@@ -165,14 +164,4 @@ type AsteraiClientParams = {
   appID: string;
   shouldEmitLogs?: boolean;
   pluginProtos?: string;
-}
-
-type AsteraiResponse = {
-  llm: string[];
-  plugin: string[];
-}
-
-type PluginProtoFromSource = {
-  name: string;
-  proto: string;
 }
