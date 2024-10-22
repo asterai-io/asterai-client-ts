@@ -1,52 +1,52 @@
-import { parse } from 'protobufjs';
+import { parse, Root, Type } from 'protobufjs';
 import { Buffer } from 'buffer';
-import { readFileSync } from 'fs';
 import axios from 'axios';
+import { createParser, ParseEvent } from "eventsource-parser";
 
 export default class AsteraiClient {
   private readonly queryKey: string;
-  private readonly appID: string;
+  private readonly appId: string;
   private logs: boolean;
   private abortController: AbortController | null = null;
-  private conversationID: string | null = null;
-  private static baseURL: string = "https://api.asterai.io";
-  private pluginProtos: PluginProtos;
+  private conversationId: string | null = null;
+  private static baseUrl: string = "https://api.asterai.io";
+  private pluginProtos: Root[] = [];
 
   public constructor(params: AsteraiClientParams) {
     this.queryKey = params.queryKey;
-    this.appID = params.appID;
-    this.logs = params.logs || false;
-    this.pluginProtos = JSON.parse(
-      readFileSync(
-        params.pluginProtosPath,
-        'utf-8'
-      )
-    );
+    this.appId = params.appID;
+    this.logs = params.shouldEmitLogs || false;
+
+    if (params.pluginProtos) {
+      const parsedProtoFile = JSON.parse(
+        params.pluginProtos,
+      );
+      for (let proto of parsedProtoFile) {
+        this.pluginProtos.push(
+          parse(`
+            syntax = "proto3";
+            ${proto.proto}
+          `).root
+        );
+      }
+    }
+
   }
 
-  public setConversationID(conversationID: string): void {
-    this.conversationID = conversationID;
+  public setConversationId(conversationId: string): void {
+    this.conversationId = conversationId;
   }
 
-  public async query(query: string, callback: (chunk: AsteraiResponse) => void, doneCallback?: () => void): Promise<void> {
+  public async query(query: string, callback: (chunk: AsteraiResponse) => void): Promise<void> {
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
 
     try {
-      const reader = await this.sseQuery(query, signal);
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          if (doneCallback) {
-            doneCallback();
-          }
-          break;
-        }
-        const chunk = decoder.decode(value, { stream: true });
-        callback(this.parseMessage(chunk));
-      }
+      await this.sseQuery(query, signal, (chunk) => {
+        callback(
+          this.parseMessage(chunk)
+        )
+      });
     } catch (error) {
       if (this.logs) {
         console.error('Error:', error);
@@ -55,25 +55,18 @@ export default class AsteraiClient {
     }
   }
 
-  public parseMessage(message: string): AsteraiResponse {
+  private parseMessage(chunk: string): AsteraiResponse {
     const result: AsteraiResponse = {
       llm: [],
       plugin: []
     };
 
-    const lines = message.split('\n');
-    for (const line of lines) {
-      if (line.includes('data: llm-token: ')) {
-        const token = line.split('data: llm-token: ')[1];
-        result.llm.push(
-          this.cleanToken(token)
-        );
-      } else if (line.includes('data: plugin-output: ')) {
-        const token = line.split('data: plugin-output: ')[1];
-        result.plugin.push(
-          this.cleanToken(token)
-        );
-      }
+    if (chunk.startsWith('llm-token: ')) {
+      const token = chunk.slice('llm-token: '.length);
+      result.llm.push(this.cleanToken(token));
+    } else if (chunk.startsWith('plugin-output: ')) {
+      const token = chunk.slice('plugin-output: '.length);
+      result.plugin.push(this.cleanToken(token));
     }
 
     return result;
@@ -85,12 +78,21 @@ export default class AsteraiClient {
       .replace(/\\/g, '');
   }
 
-  private async sseQuery(query: string, signal: AbortSignal): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-    let url = `${AsteraiClient.baseURL}/app/${this.appID}/query/sse`;
+  private async sseQuery(query: string, signal: AbortSignal, chunkCallback: (chunk: string) => void): Promise<void> {
+    let url = `${AsteraiClient.baseUrl}/app/${this.appId}/query/sse`;
     
-    if (this.conversationID) {
-      url += `?conversation_id=${encodeURIComponent(this.conversationID)}`;
+    if (this.conversationId) {
+      url += `?conversation_id=${encodeURIComponent(this.conversationId)}`;
     }
+
+    // Preparing parser that will callback once a full message is received
+    const parser = createParser((event) => {
+      if (event.type !== 'event') {
+        return;
+      }
+      
+      chunkCallback(event.data);
+    });
 
     const response = await axios({
       method: 'POST',
@@ -101,25 +103,18 @@ export default class AsteraiClient {
       data: query,
       signal,
       responseType: 'stream',
+      validateStatus: () => true,
     });
 
     if (response.status !== 200) {
-      throw new Error(`HTTP status error: ${response.status}`);
+      throw new Error(`Received non-200 response: ${response.statusText}`);
     }
 
-    const stream = response.data;
-    const readableStream = new ReadableStream({
-      start(controller) {
-        stream.on('data', (chunk: Buffer) => {
-          controller.enqueue(new Uint8Array(chunk));
-        });
-        stream.on('end', () => controller.close());
-        stream.on('error', (error: Error) => controller.error(error));
-      },
+    response.data.on('data', (chunk: Event) => {
+      parser.feed(chunk.toString());
     });
-
-    return readableStream.getReader();
   }
+
 
   public abort(): void {
     if (this.abortController) {
@@ -130,28 +125,16 @@ export default class AsteraiClient {
 
   public decodePluginMessage<T>(message: string): T | undefined {
     const [functionName, encodedMessage] = message.split(':');
-    
-    // Find the relevant proto
-    let rawProto: PluginProto | undefined;
-    for (const workingProto of this.pluginProtos.protos) {
-      if (workingProto.proto.includes(functionName)) {
-        rawProto = workingProto;
+
+    let messageType: Type | undefined;
+    for (let proto of this.pluginProtos) {
+      messageType = proto.lookupType(functionName);
+      if (messageType) {
         break;
       }
     }
-    if (!rawProto) {
-      if (this.logs) {
-        console.error(`No proto found for ${functionName}`);
-      }
-      return;
-    }
 
-    const root = parse(`
-      syntax = "proto3";
-      ${rawProto.proto}
-    `).root;
-    const MessageType = root.lookupType(functionName);
-    if (!MessageType) {
+    if (!messageType) {
       if (this.logs) {
         console.error(`No message type found for ${functionName}`);
       }
@@ -160,8 +143,8 @@ export default class AsteraiClient {
 
     try {
       const buffer = Buffer.from(encodedMessage, 'base64');
-      const decodedMessage = MessageType.decode(buffer);
-      const object = MessageType.toObject(decodedMessage, {
+      const decodedMessage = messageType.decode(buffer);
+      const object = messageType.toObject(decodedMessage, {
         longs: String,
         enums: String,
         bytes: String,
@@ -180,8 +163,8 @@ export default class AsteraiClient {
 type AsteraiClientParams = {
   queryKey: string;
   appID: string;
-  logs?: boolean;
-  pluginProtosPath: string;  
+  shouldEmitLogs?: boolean;
+  pluginProtos?: string;
 }
 
 type AsteraiResponse = {
@@ -189,11 +172,7 @@ type AsteraiResponse = {
   plugin: string[];
 }
 
-type PluginProtos = {
-  protos: PluginProto[];
-}
-
-type PluginProto = {
+type PluginProtoFromSource = {
   name: string;
   proto: string;
 }
