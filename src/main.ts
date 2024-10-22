@@ -14,7 +14,7 @@ export default class AsteraiClient {
 
   public constructor(params: AsteraiClientParams) {
     this.queryKey = params.queryKey;
-    this.appId = params.appID;
+    this.appId = params.appId;
     this.logs = params.shouldEmitLogs || false;
 
     if (params.pluginProtos) {
@@ -161,7 +161,7 @@ export default class AsteraiClient {
 
 type AsteraiClientParams = {
   queryKey: string;
-  appID: string;
+  appId: string;
   shouldEmitLogs?: boolean;
   pluginProtos?: string;
 }
