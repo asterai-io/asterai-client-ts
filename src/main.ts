@@ -7,7 +7,6 @@ export default class AsteraiClient {
   private readonly queryKey: string;
   private readonly appId: string;
   private logs: boolean;
-  private abortController: AbortController | null = null;
   private conversationId: string | null = null;
   private static baseUrl: string = "https://api.asterai.io";
   private pluginProtos: Root[] = [];
@@ -105,14 +104,6 @@ export default class AsteraiClient {
     });
 
     return signal;
-  }
-
-
-  public abort(): void {
-    if (this.abortController) {
-      this.abortController.abort();
-      this.abortController = null;
-    }
   }
 
   public decodePluginMessage<T>(message: string): T | undefined {
