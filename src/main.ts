@@ -21,7 +21,7 @@ export default class AsteraiClient {
         params.pluginProtos,
       );
 
-      for (let proto of parsedProtoFile.protos) {
+      for (let proto of parsedProtoFile.manifests) {
         this.pluginProtos.push(
           parse(`
             syntax = "proto3";
