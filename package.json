@@ -1,6 +1,6 @@
 {
-  "name": "asterai-client-ts",
-  "version": "1.0.0",
+  "name": "@asterai/client",
+  "version": "0.1.0",
   "description": "",
   "main": "dist/main.js",
   "scripts": {
