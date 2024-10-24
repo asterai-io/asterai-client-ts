@@ -2,11 +2,11 @@
   "name": "@asterai/client",
   "version": "0.1.0",
   "description": "",
-  "main": "dist/main.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rm -rf dist && tsc",
-    "debug": "ts-node src/sandbox.ts"
+    "example": "ts-node example/client/index.ts"
   },
   "keywords": [],
   "author": "",

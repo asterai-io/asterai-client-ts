@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+service BurgerShop {
+  rpc orderBurger(OrderInput) returns (OrderOutput);
+}
+
+message OrderInput {
+  string delivery_address = 1;
+  bool remove_pickles = 2;
+}
+
+message OrderOutput {
+  double estimated_delivery_time_hours = 1;
+  string system_message = 2;
+}
