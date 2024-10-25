@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import path from "path";
-import AsteraiClient from "../../src";
+import AsteraiClient, {QueryArgs} from "../../src";
 import {
   OrderOutput
 } from "./generated/app.f52a81f7-8188-4dc2-b1ee-ed4b43c41ba6";
@@ -17,12 +17,11 @@ const client = new AsteraiClient({
 
 const runTestQuery = async () => {
   renderOutputs("", "");
-  const queryArgs = {
+  const queryArgs: QueryArgs = {
     query:
       "can i get a uhhhh 1 cheezburgers?\n" +
       "deliver to 42 Wallaby Way, Sydney.\n" +
       "NO PICKLES!",
-    appId: APP_ID
   };
   const response = await client.query(queryArgs);
   // Optionally, it is possible to abort a response

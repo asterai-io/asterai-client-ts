@@ -11,12 +11,12 @@ export type AsteraiClientArgs = {
 
 export type QueryArgs = {
   query: string;
+  conversationId?: string;
 };
 
 export default class AsteraiClient {
   private readonly queryKey: string;
   private readonly appId: string;
-  private conversationId: string | null = null;
   private static baseUrl: string = "https://api.asterai.io";
   private protos: Root[] = [];
 
@@ -32,15 +32,11 @@ export default class AsteraiClient {
     }
   }
 
-  public setConversationId(conversationId: string): void {
-    this.conversationId = conversationId;
-  }
-
   public async query(args: QueryArgs): Promise<QueryResponse> {
     const abortController = new AbortController();
     let url = `${AsteraiClient.baseUrl}/app/${this.appId}/query/sse`;
-    if (this.conversationId) {
-      url += `?conversation_id=${encodeURIComponent(this.conversationId)}`;
+    if (args.conversationId) {
+      url += `?conversation_id=${encodeURIComponent(args.conversationId)}`;
     }
     const response = await axios({
       method: "POST",
