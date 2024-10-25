@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+message PluginContext {
+  AppQuery query = 1;
+}
+
+message AppQuery {
+  string content = 1;
+  int64 timestamp_unix_millis = 2;
+  optional string user_id = 3;
+}
+
+message HostVectorEmbeddingSearchRequest {
+  string query = 1;
+  string app_collection_name = 2;
+}
+
+message HostVectorEmbeddingSearchResponse {
+  repeated HostVectorEmbeddingSimilarityScore results = 1;
+}
+
+message HostVectorEmbeddingSimilarityScore {
+  float score = 1;
+  map<string, string> payload = 2;
+}
+
+message HostLogRequest {
+  string content = 1;
+  string level = 2;
+}
+
+message HostHttpRequest {
+  string request = 1;
+}
+
+message HostHttpResponse {
+  string response = 1;
+}
+
+message HostKvGetUserStringRequest {
+  string user_id = 1;
+  string key = 2;
+}
+
+message HostKvGetUserStringResponse {
+  optional string value = 1;
+}
+
+message HostKvSetUserStringRequest {
+  string user_id = 1;
+  string key = 2;
+  optional string value = 3;
+}
+
+service BurgerShop {
+rpc orderBurger(OrderInput) returns (OrderOutput);
+}
+
+message OrderInput {
+string delivery_address = 1;
+bool remove_pickles = 2;
+}
+
+message OrderOutput {
+double estimated_delivery_time_hours = 1;
+}
