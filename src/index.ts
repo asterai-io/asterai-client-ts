@@ -7,6 +7,7 @@ export type AsteraiClientArgs = {
   queryKey: string;
   appId: string;
   appProtos?: string[];
+  apiBaseUrl?: string;
 };
 
 export type QueryArgs = {
@@ -17,24 +18,27 @@ export type QueryArgs = {
 export default class AsteraiClient {
   private readonly queryKey: string;
   private readonly appId: string;
-  private static baseUrl: string = "https://api.asterai.io";
+  private apiBaseUrl: string = "https://api.asterai.io";
   private protos: Root[] = [];
 
-  public constructor(params: AsteraiClientArgs) {
-    this.queryKey = params.queryKey;
-    this.appId = params.appId;
-    if (params.appProtos) {
-      for (let proto of params.appProtos) {
+  public constructor(args: AsteraiClientArgs) {
+    this.queryKey = args.queryKey;
+    this.appId = args.appId;
+    if (args.appProtos) {
+      for (let proto of args.appProtos) {
         this.protos.push(
           parse(proto).root
         );
       }
     }
+    if (args.apiBaseUrl) {
+      this.apiBaseUrl = args.apiBaseUrl;
+    }
   }
 
   public async query(args: QueryArgs): Promise<QueryResponse> {
     const abortController = new AbortController();
-    let url = `${AsteraiClient.baseUrl}/app/${this.appId}/query/sse`;
+    let url = `${this.apiBaseUrl}/app/${this.appId}/query/sse`;
     if (args.conversationId) {
       url += `?conversation_id=${encodeURIComponent(args.conversationId)}`;
     }
