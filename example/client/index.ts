@@ -31,7 +31,7 @@ const runTestQuery = async () => {
       response.abort();
       console.log("took too long to order cheezburgers");
     },
-    10_000
+    25_000
   );
   let llmResponse = "";
   let pluginOutputDisplay = "";
@@ -48,8 +48,7 @@ const runTestQuery = async () => {
   response.onPluginOutput(output => {
     if (output.name === "OrderOutput") {
       const order = output.value as OrderOutput;
-      const minutes = order.estimatedDeliveryTimeHours * 60;
-      pluginOutputDisplay += `burger will be delivered in ${minutes} minutes`;
+      pluginOutputDisplay += `${JSON.stringify(order, null, 2)} `;
       renderOutputs(llmResponse, pluginOutputDisplay);
     }
   });
