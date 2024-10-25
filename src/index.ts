@@ -18,7 +18,7 @@ export type QueryArgs = {
 export default class AsteraiClient {
   private readonly queryKey: string;
   private readonly appId: string;
-  private apiBaseUrl: string = "https://api.asterai.io";
+  private readonly apiBaseUrl: string = "https://api.asterai.io";
   private protos: Root[] = [];
 
   public constructor(args: AsteraiClientArgs) {
