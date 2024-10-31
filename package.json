@@ -3,19 +3,28 @@
   "version": "0.1.0",
   "description": "client library for asterai.io",
   "main": "dist/index.js",
+  "repository": "https://github.com/asterai-io/asterai-client-ts",
+  "homepage": "https://github.com/asterai-io/asterai-client-ts",
+  "private": false,
   "scripts": {
     "build": "rm -rf dist && tsc",
     "example": "ts-node example/client/index.ts"
   },
   "keywords": ["ai", "llm", "agent", "vector", "embedding"],
   "author": "asterai",
-  "license": "MIT",
+  "license": "BUSL-1.1",
   "dependencies": {
     "axios": "^1.7.7",
     "eventsource-parser": "^2.0.1",
     "protobufjs": "^7.4.0",
     "typescript": "^5.6.3"
   },
+  "files": [
+    "dist/",
+    "package.json",
+    "README.md",
+    "tsconfig.json"
+  ],
   "devDependencies": {
     "@types/node": "^22.7.5",
     "ts-node": "^10.9.2"
