@@ -115,7 +115,7 @@ export class QueryResponse {
     this.axiosResponse.data.on("data", (chunk: Event) => {
       parser.feed(chunk.toString());
     });
-    this.axiosResponse.data.on("close", (chunk: Event) => {
+    this.axiosResponse.data.on("close", (_chunk: Event) => {
       this.callOnEnd({ reason: "finished" });
     });
   }
