@@ -15,7 +15,7 @@ export type QueryArgs = {
   conversationId?: string;
 };
 
-export default class AsteraiClient {
+export class AsteraiClient {
   private readonly queryKey: string;
   private readonly appId: string;
   private readonly apiBaseUrl: string = "https://api.asterai.io";

@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import path from "path";
-import AsteraiClient, {QueryArgs} from "../../src";
+import {AsteraiClient, QueryArgs} from "../../src";
 import {
   OrderOutput
 } from "./generated/app.f52a81f7-8188-4dc2-b1ee-ed4b43c41ba6";
