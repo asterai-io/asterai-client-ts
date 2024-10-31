@@ -1,16 +1,15 @@
 {
   "name": "@asterai/client",
-  "version": "0.1.1",
-  "description": "",
+  "version": "0.1.0",
+  "description": "client library for asterai.io",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rm -rf dist && tsc",
     "example": "ts-node example/client/index.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "UNLICENSED",
+  "keywords": ["ai", "llm", "agent", "vector", "embedding"],
+  "author": "asterai",
+  "license": "MIT",
   "dependencies": {
     "axios": "^1.7.7",
     "eventsource-parser": "^2.0.1",
