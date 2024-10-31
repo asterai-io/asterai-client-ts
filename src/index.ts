@@ -106,7 +106,7 @@ export class QueryResponse {
       if (event.data.startsWith(llmTokenPrefix)) {
         const token = event.data.substring(llmTokenPrefix.length);
         this.callOnToken(token);
-      } else if (event.data.startsWith(pluginOutputPrefix)) {
+      } else if (event.data.startsWith(pluginOutputPrefix) && this.protos.length > 0) {
         const rawOutput = event.data.substring(pluginOutputPrefix.length);
         const output = this.decodePluginOutput(rawOutput);
         this.callPluginOutput(output);
