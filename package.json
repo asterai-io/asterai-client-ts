@@ -7,7 +7,8 @@
   "homepage": "https://github.com/asterai-io/asterai-client-ts",
   "private": false,
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc",
+    "example": "ts-node example/client/index.ts"
   },
   "keywords": [
     "ai",
