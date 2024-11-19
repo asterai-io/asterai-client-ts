@@ -50,7 +50,8 @@ export class AsteraiClient {
       },
       data: args.query,
       signal: abortController.signal,
-      responseType: "stream",
+      responseType: isBrowser() ? "text" : "stream",
+      onDownloadProgress: () => {},
     });
     return new QueryResponse(response, abortController, this.protos);
   }
@@ -96,7 +97,6 @@ export class QueryResponse {
   }
 
   private async setupResponse() {
-    // Preparing parser that will callback once a full message is received
     const parser = createParser((event) => {
       if (event.type !== "event") {
         return;
@@ -112,12 +112,29 @@ export class QueryResponse {
         this.callPluginOutput(output);
       }
     });
-    this.axiosResponse.data.on("data", (chunk: Event) => {
+
+    // Detecting environment.
+    if (isBrowser()) {
+      await this.parseBrowserStream(parser);
+    } else {
+      await this.parseNodeStream(parser);
+    }
+  }
+
+  private async parseNodeStream(parser: ReturnType<typeof createParser>) {
+    const reader = this.axiosResponse.data;
+    reader.on("data", (chunk: Buffer) => {
       parser.feed(chunk.toString());
     });
-    this.axiosResponse.data.on("close", (_chunk: Event) => {
+    reader.on("end", () => {
       this.callOnEnd({ reason: "finished" });
     });
+  }
+
+  private async parseBrowserStream(parser: ReturnType<typeof createParser>) {
+    const text = await this.axiosResponse.data;
+    parser.feed(text);
+    this.callOnEnd({ reason: "finished" });
   }
 
   public onToken(callback: TokenCallback) {
@@ -179,7 +196,6 @@ export class QueryResponse {
     });
   }
 
-  // TODO call this on plugin output
   private decodePluginOutput(rawOutput: string): PluginOutput {
     const splitMessage = rawOutput.split(":");
     const messageTypeName = splitMessage[0];
@@ -212,4 +228,9 @@ export class QueryResponse {
       throw new Error(`failed to decode asterai plugin message: ${error}`);
     }
   }
+}
+
+const isBrowser = (): boolean => {
+  // @ts-expect-error
+  return typeof window !== 'undefined';
 }
