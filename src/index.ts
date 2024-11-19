@@ -1,6 +1,5 @@
 import { parse, Root, Type } from "protobufjs";
 import { Buffer } from "buffer";
-import axios, {AxiosResponse} from "axios";
 import { createParser } from "eventsource-parser";
 
 export type AsteraiClientArgs = {
@@ -42,17 +41,17 @@ export class AsteraiClient {
     if (args.conversationId) {
       url += `?conversation_id=${encodeURIComponent(args.conversationId)}`;
     }
-    const response = await axios({
+
+    const response = await fetch(url, {
       method: "POST",
-      url,
       headers: {
         "Authorization": `Bearer ${this.queryKey}`,
+        "Accept": "text/event-stream",
       },
-      data: args.query,
+      body: args.query,
       signal: abortController.signal,
-      responseType: isBrowser() ? "text" : "stream",
-      onDownloadProgress: () => {},
     });
+
     return new QueryResponse(response, abortController, this.protos);
   }
 }
@@ -75,7 +74,7 @@ export type EndState = {
 export type EndReason = "finished" | "aborted";
 
 export class QueryResponse {
-  private axiosResponse: AxiosResponse<any, any>;
+  private response: Response;
   private abortController: AbortController;
   private protos: Root[];
   private isActive = true;
@@ -84,15 +83,15 @@ export class QueryResponse {
   private onEndCallbacks: EndCallback[] = [];
 
   public constructor(
-    axiosResponse: AxiosResponse<any, any>,
+    response: Response,
     abortController: AbortController,
     protos: Root[],
   ) {
-    this.axiosResponse = axiosResponse;
+    this.response = response;
     this.abortController = abortController;
     this.protos = protos;
     this.setupResponse().catch(e => {
-      throw e
+      throw e;
     });
   }
 
@@ -113,28 +112,23 @@ export class QueryResponse {
       }
     });
 
-    // Detecting environment.
-    if (isBrowser()) {
-      await this.parseBrowserStream(parser);
-    } else {
-      await this.parseNodeStream(parser);
+    if (!this.response.body) {
+      throw new Error("Response body is null");
     }
-  }
 
-  private async parseNodeStream(parser: ReturnType<typeof createParser>) {
-    const reader = this.axiosResponse.data;
-    reader.on("data", (chunk: Buffer) => {
-      parser.feed(chunk.toString());
-    });
-    reader.on("end", () => {
-      this.callOnEnd({ reason: "finished" });
-    });
-  }
-
-  private async parseBrowserStream(parser: ReturnType<typeof createParser>) {
-    const text = await this.axiosResponse.data;
-    parser.feed(text);
-    this.callOnEnd({ reason: "finished" });
+    this.response.body
+      .pipeThrough(new TextDecoderStream())
+      .pipeTo(new WritableStream({
+        write: (chunk) => {
+          parser.feed(chunk);
+        },
+        close: () => {
+          this.callOnEnd({ reason: "finished" });
+        },
+        abort: () => {
+          this.callOnEnd({ reason: "aborted" });
+        }
+      }));
   }
 
   public onToken(callback: TokenCallback) {
@@ -228,9 +222,4 @@ export class QueryResponse {
       throw new Error(`failed to decode asterai plugin message: ${error}`);
     }
   }
-}
-
-const isBrowser = (): boolean => {
-  // @ts-expect-error
-  return typeof window !== 'undefined';
 }
