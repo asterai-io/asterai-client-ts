@@ -1,6 +1,5 @@
 import { parse, Root, Type } from "protobufjs";
 import { Buffer } from "buffer";
-import axios, {AxiosResponse} from "axios";
 import { createParser } from "eventsource-parser";
 
 export type AsteraiClientArgs = {
@@ -42,16 +41,17 @@ export class AsteraiClient {
     if (args.conversationId) {
       url += `?conversation_id=${encodeURIComponent(args.conversationId)}`;
     }
-    const response = await axios({
+
+    const response = await fetch(url, {
       method: "POST",
-      url,
       headers: {
         "Authorization": `Bearer ${this.queryKey}`,
+        "Accept": "text/event-stream",
       },
-      data: args.query,
+      body: args.query,
       signal: abortController.signal,
-      responseType: "stream",
     });
+
     return new QueryResponse(response, abortController, this.protos);
   }
 }
@@ -74,7 +74,7 @@ export type EndState = {
 export type EndReason = "finished" | "aborted";
 
 export class QueryResponse {
-  private axiosResponse: AxiosResponse<any, any>;
+  private response: Response;
   private abortController: AbortController;
   private protos: Root[];
   private isActive = true;
@@ -83,20 +83,19 @@ export class QueryResponse {
   private onEndCallbacks: EndCallback[] = [];
 
   public constructor(
-    axiosResponse: AxiosResponse<any, any>,
+    response: Response,
     abortController: AbortController,
     protos: Root[],
   ) {
-    this.axiosResponse = axiosResponse;
+    this.response = response;
     this.abortController = abortController;
     this.protos = protos;
     this.setupResponse().catch(e => {
-      throw e
+      throw e;
     });
   }
 
   private async setupResponse() {
-    // Preparing parser that will callback once a full message is received
     const parser = createParser((event) => {
       if (event.type !== "event") {
         return;
@@ -112,12 +111,24 @@ export class QueryResponse {
         this.callPluginOutput(output);
       }
     });
-    this.axiosResponse.data.on("data", (chunk: Event) => {
-      parser.feed(chunk.toString());
-    });
-    this.axiosResponse.data.on("close", (_chunk: Event) => {
-      this.callOnEnd({ reason: "finished" });
-    });
+
+    if (!this.response.body) {
+      throw new Error("Response body is null");
+    }
+
+    this.response.body
+      .pipeThrough(new TextDecoderStream())
+      .pipeTo(new WritableStream({
+        write: (chunk) => {
+          parser.feed(chunk);
+        },
+        close: () => {
+          this.callOnEnd({ reason: "finished" });
+        },
+        abort: () => {
+          this.callOnEnd({ reason: "aborted" });
+        }
+      }));
   }
 
   public onToken(callback: TokenCallback) {
@@ -179,7 +190,6 @@ export class QueryResponse {
     });
   }
 
-  // TODO call this on plugin output
   private decodePluginOutput(rawOutput: string): PluginOutput {
     const splitMessage = rawOutput.split(":");
     const messageTypeName = splitMessage[0];
