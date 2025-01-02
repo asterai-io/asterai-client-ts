@@ -152,6 +152,23 @@ export class QueryResponse {
     this.onEndCallbacks.push(callback);
   }
 
+  // Returns the full LLM response as text.
+  public text(): Promise<string> {
+    let response = "";
+    this.onToken(token => {
+      response += token;
+    });
+    return new Promise((resolve, reject) => {
+      this.onEnd(state => {
+        if (state.reason === "aborted") {
+          reject();
+          return;
+        }
+        resolve(response);
+      });
+    });
+  }
+
   private callOnToken(token: string) {
     if (!this.isActive) {
       return;
