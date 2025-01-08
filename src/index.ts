@@ -1,6 +1,9 @@
-import { parse, Root, Type } from "protobufjs";
+import {parse, Root, Type} from "protobufjs";
 import { Buffer } from "buffer";
 import { createParser } from "eventsource-parser";
+import { PassThrough } from "stream";
+
+const TEXT_DECODER = new TextDecoder();
 
 export type AsteraiClientArgs = {
   queryKey: string;
@@ -116,11 +119,26 @@ export class QueryResponse {
       throw new Error("Response body is null");
     }
 
-    this.response.body
-      .pipeThrough(new TextDecoderStream())
-      .pipeTo(new WritableStream({
-        write: (chunk) => {
-          parser.feed(chunk);
+    if (!this.response.body.pipeTo) {
+      // In some Node environments, the type of `body` is `PassThrough`.
+      const passThrough = this.response.body as unknown as PassThrough;
+      passThrough.addListener("data", (chunk: any) => {
+          const text = TEXT_DECODER.decode(chunk);
+          parser.feed(text);
+      });
+      passThrough.addListener("finish", () => {
+          this.callOnEnd({ reason: "finished" });
+      });
+      passThrough.addListener("error", () => {
+          this.callOnEnd({ reason: "aborted" });
+      });
+    } else {
+      // This is the expected and normal flow, where the type of `body`
+      // is `ReadableStream`.
+      await this.response.body.pipeTo(new WritableStream({
+        write: (chunk: any) => {
+          const text = TEXT_DECODER.decode(chunk);
+          parser.feed(text);
         },
         close: () => {
           this.callOnEnd({ reason: "finished" });
@@ -129,6 +147,7 @@ export class QueryResponse {
           this.callOnEnd({ reason: "aborted" });
         }
       }));
+    }
   }
 
   public onToken(callback: TokenCallback) {
