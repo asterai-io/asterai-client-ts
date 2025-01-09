@@ -18,8 +18,8 @@ export type QueryArgs = {
 };
 
 export class AsteraiClient {
+  public readonly appId: string;
   private readonly queryKey: string;
-  private readonly appId: string;
   private readonly apiBaseUrl: string = "https://api.asterai.io";
   private protos: Root[] = [];
 
@@ -56,6 +56,21 @@ export class AsteraiClient {
     });
 
     return new QueryResponse(response, abortController, this.protos);
+  }
+
+  /**
+   * Fetches the agent's summary markdown file, containing
+   * a natural language description of the functions and
+   * plugins available in the agent.
+   *
+   * This is useful context for agent-to-agent communication.
+   */
+  public async fetchSummary(): Promise<string> {
+    const url = `${this.apiBaseUrl}/app/${this.appId}/summary.md`;
+    const response = await fetch(url, {
+      method: "GET",
+    });
+    return response.text();
   }
 }
 
