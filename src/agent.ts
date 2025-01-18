@@ -5,7 +5,7 @@ import { PassThrough } from "stream";
 
 const TEXT_DECODER = new TextDecoder();
 
-export type AsteraiClientArgs = {
+export type AsteraiAgentArgs = {
   queryKey: string;
   appId: string;
   appProtos?: string[];
@@ -17,13 +17,14 @@ export type QueryArgs = {
   conversationId?: string;
 };
 
-export class AsteraiClient {
+export class AsteraiAgent {
+  /** The agent application ID. */
   public readonly appId: string;
   private readonly queryKey: string;
   private readonly apiBaseUrl: string = "https://api.asterai.io";
   private protos: Root[] = [];
 
-  public constructor(args: AsteraiClientArgs) {
+  public constructor(args: AsteraiAgentArgs) {
     this.queryKey = args.queryKey;
     this.appId = args.appId;
     if (args.appProtos) {
@@ -91,6 +92,9 @@ export type EndState = {
 
 export type EndReason = "finished" | "aborted";
 
+/**
+ * The response object for an agent's query.
+ */
 export class QueryResponse {
   private response: Response;
   private abortController: AbortController;
@@ -138,14 +142,14 @@ export class QueryResponse {
       // In some Node environments, the type of `body` is `PassThrough`.
       const passThrough = this.response.body as unknown as PassThrough;
       passThrough.addListener("data", (chunk: any) => {
-          const text = TEXT_DECODER.decode(chunk);
-          parser.feed(text);
+        const text = TEXT_DECODER.decode(chunk);
+        parser.feed(text);
       });
       passThrough.addListener("finish", () => {
-          this.callOnEnd({ reason: "finished" });
+        this.callOnEnd({ reason: "finished" });
       });
       passThrough.addListener("error", () => {
-          this.callOnEnd({ reason: "aborted" });
+        this.callOnEnd({ reason: "aborted" });
       });
     } else {
       // This is the expected and normal flow, where the type of `body`
