@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import path from "path";
-import {AsteraiClient, QueryArgs} from "../../src";
+import {AsteraiAgent, QueryArgs} from "../../src";
 import {
   OrderOutput
 } from "./generated/app.f52a81f7-8188-4dc2-b1ee-ed4b43c41ba6";
@@ -9,7 +9,7 @@ import {
 const APP_ID = "f52a81f7-8188-4dc2-b1ee-ed4b43c41ba6";
 const PUBLIC_QUERY_KEY = "9d526f40-f1cb-4694-bfee-1139c20e4b18";
 
-const client = new AsteraiClient({
+const client = new AsteraiAgent({
   appId: APP_ID,
   queryKey: PUBLIC_QUERY_KEY,
   appProtos: [readFileSync(path.join(__dirname, `./generated/app.${APP_ID}.proto`), "utf-8")],
