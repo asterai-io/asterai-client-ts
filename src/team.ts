@@ -1,4 +1,5 @@
 import {AsteraiAgent} from "./agent";
+import {DEFAULT_API_BASE_URL} from "./config";
 
 export type FetchTeamArgs = {
   teamId: string;
@@ -8,6 +9,44 @@ export type FetchTeamArgs = {
 
 export type ListTeamsArgs = {
   accountApiKey: string;
+  apiBaseUrl?: string;
+};
+
+export type AsteraiAgentInformation = {
+  id: string;
+  name: string;
+  publicQueryKeys: string[];
+  teamId: string;
+  plugins: AgentPlugin[];
+  llmParams: AgentLlmParams;
+};
+
+export type AgentPlugin = {
+  /**
+   * The ID of the plugin instance.
+   */
+  id: string;
+  name: string;
+  isEnabled: boolean;
+}
+
+export type AgentLlmParams = {
+  model: string;
+  provider: string;
+  maxTokens: number;
+  temperature: number;
+  topP: number;
+  presencePenalty: number;
+  frequencyPenalty: number;
+};
+
+type ListTeamsResponse = {
+  teams: ListTeamsResponseTeam[];
+}
+
+type ListTeamsResponseTeam = {
+  id: string;
+  name: string;
 };
 
 /**
@@ -24,7 +63,7 @@ export class AsteraiTeam {
   public readonly id: string;
   public readonly name: string;
   private readonly accountApiKey: string;
-  private readonly apiBaseUrl: string = "https://api.asterai.io";
+  private readonly apiBaseUrl: string = DEFAULT_API_BASE_URL;
 
   private constructor(
     id: string,
@@ -40,15 +79,33 @@ export class AsteraiTeam {
     }
   }
 
-  public static async fetch(args: FetchTeamArgs): Promise<AsteraiTeam> {
-    throw new Error("todo");
+  public static async fetch(args: FetchTeamArgs): Promise<AsteraiTeam | undefined> {
+    const teams = await AsteraiTeam.list({
+      accountApiKey: args.accountApiKey,
+      apiBaseUrl: args.apiBaseUrl
+    });
+    return teams.find(t => t.id == args.teamId);
   }
 
   /**
    * List teams from an account.
    */
   public static async list(args: ListTeamsArgs): Promise<AsteraiTeam[]> {
-    throw new Error("todo");
+    const apiBaseUrl = args.apiBaseUrl ?? DEFAULT_API_BASE_URL;
+    let url = `${apiBaseUrl}/teams`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${args.accountApiKey}`
+      },
+    });
+    const teams = await response.json() as ListTeamsResponse;
+    return teams.teams.map(team => new AsteraiTeam(
+      team.id,
+      team.name,
+      args.accountApiKey,
+      args.apiBaseUrl
+    ));
   }
 
   public async listAgents(): Promise<AsteraiAgent[]> {
