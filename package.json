@@ -1,6 +1,6 @@
 {
   "name": "@asterai/client",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "client library for asterai.io",
   "main": "dist/index.js",
   "repository": "https://github.com/asterai-io/asterai-client-ts",
@@ -8,7 +8,8 @@
   "private": false,
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "example": "ts-node example/client/index.ts"
+    "example": "ts-node example/client/index.ts",
+    "example-team": "ts-node example/team/index.ts"
   },
   "keywords": [
     "ai",
