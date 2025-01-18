@@ -17,17 +17,6 @@ export type QueryArgs = {
   conversationId?: string;
 };
 
-export type AgentInformation = {
-  name: string;
-  llmParams: AgentLlmParams;
-};
-
-export type AgentLlmParams = {
-  modelName: string;
-  modelProvider: string;
-  // ... temperature, etc
-};
-
 export class AsteraiAgent {
   /** The agent application ID. */
   public readonly appId: string;
@@ -101,14 +90,6 @@ export class AsteraiAgent {
       method: "GET",
     });
     return response.text();
-  }
-
-  /**
-   * Fetches information about the agent, such as
-   * the name of the agent and LLM params.
-   */
-  public async fetchInformation(): Promise<AgentInformation> {
-    throw new Error("todo");
   }
 }
 
