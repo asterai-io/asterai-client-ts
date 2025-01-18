@@ -1,5 +1,11 @@
 import {AsteraiAgent} from "./agent";
 
+export type FetchTeamArgs = {
+  teamId: string;
+  accountApiKey: string;
+  apiBaseUrl?: string;
+};
+
 export type ListTeamsArgs = {
   accountApiKey: string;
 };
@@ -18,17 +24,23 @@ export class AsteraiTeam {
   public readonly id: string;
   public readonly name: string;
   private readonly accountApiKey: string;
+  private readonly apiBaseUrl: string = "https://api.asterai.io";
 
-  private constructor(id: string, name: string, accountApiKey: string) {
+  private constructor(
+    id: string,
+    name: string,
+    accountApiKey: string,
+    apiBaseUrl?: string,
+  ) {
     this.id = id;
     this.name = name;
     this.accountApiKey = accountApiKey;
+    if (apiBaseUrl) {
+      this.apiBaseUrl = apiBaseUrl;
+    }
   }
 
-  public static async fromIdAndApiKey(
-    teamId: string,
-    accountApiKey: string
-  ): Promise<AsteraiTeam> {
+  public static async fetch(args: FetchTeamArgs): Promise<AsteraiTeam> {
     throw new Error("todo");
   }
 
