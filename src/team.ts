@@ -1,4 +1,3 @@
-import {AsteraiAgent} from "./agent";
 import {DEFAULT_API_BASE_URL} from "./config";
 
 export type FetchTeamArgs = {
@@ -48,6 +47,10 @@ type ListTeamsResponseTeam = {
   id: string;
   name: string;
 };
+
+type ListAgentsResponse = {
+  apps: AsteraiAgentInformation[];
+}
 
 /**
  * Represents an asterai team.
@@ -99,8 +102,8 @@ export class AsteraiTeam {
         "Authorization": `Bearer ${args.accountApiKey}`
       },
     });
-    const teams = await response.json() as ListTeamsResponse;
-    return teams.teams.map(team => new AsteraiTeam(
+    const json = await response.json() as ListTeamsResponse;
+    return json.teams.map(team => new AsteraiTeam(
       team.id,
       team.name,
       args.accountApiKey,
@@ -108,7 +111,15 @@ export class AsteraiTeam {
     ));
   }
 
-  public async listAgents(): Promise<AsteraiAgent[]> {
-    throw new Error("todo");
+  public async listAgents(): Promise<AsteraiAgentInformation[]> {
+    let url = `${this.apiBaseUrl}/team/${this.id}/apps`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${this.accountApiKey}`
+      },
+    });
+    const json = await response.json() as ListAgentsResponse;
+    return json.apps;
   }
 }
