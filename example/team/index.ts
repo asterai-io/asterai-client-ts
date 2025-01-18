@@ -7,12 +7,11 @@ import { AsteraiTeam } from "../../src";
  */
 
 // Set your account API key.
-const ACCOUNT_API_KEY = "23f72361-1a33-43c8-8af0-b0dce5a62845";
+const ACCOUNT_API_KEY = "secret";
 
 const main = async () => {
   const teams = await AsteraiTeam.list({
     accountApiKey: ACCOUNT_API_KEY,
-    apiBaseUrl: "http://localhost:3003"
   });
   for (const team of teams) {
     const teamHeader = `team ${team.name} (${team.id})`;
