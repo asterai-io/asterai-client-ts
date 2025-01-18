@@ -1,4 +1,4 @@
-import {parse, Root, Type} from "protobufjs";
+import { parse, Root, Type } from "protobufjs";
 import { Buffer } from "buffer";
 import { createParser } from "eventsource-parser";
 import { PassThrough } from "stream";
@@ -49,6 +49,21 @@ export class AsteraiAgent {
       this.apiBaseUrl = args.apiBaseUrl;
     }
   }
+
+  /**
+   * Create a new instance of this agent with a different query key.
+   */
+  public withQueryKey(queryKey: string): AsteraiAgent {
+    const agent = new AsteraiAgent({
+      queryKey,
+      appId: this.appId,
+      appProtos: [],
+      apiBaseUrl: this.apiBaseUrl,
+    });
+    // Copy parsed protos.
+    agent.protos = this.protos;
+    return agent;
+  };
 
   public async query(args: QueryArgs): Promise<QueryResponse> {
     const abortController = new AbortController();
