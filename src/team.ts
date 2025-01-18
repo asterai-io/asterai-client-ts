@@ -1,5 +1,9 @@
 import {AsteraiAgent} from "./agent";
 
+export type ListTeamsArgs = {
+  accountApiKey: string;
+};
+
 /**
  * Represents an asterai team.
  *
@@ -23,6 +27,13 @@ export class AsteraiTeam {
     teamId: string,
     accountApiKey: string
   ): Promise<AsteraiTeam> {
+    throw new Error("todo");
+  }
+
+  /**
+   * List teams from an account.
+   */
+  public static async list(args: ListTeamsArgs): Promise<AsteraiTeam[]> {
     throw new Error("todo");
   }
 
