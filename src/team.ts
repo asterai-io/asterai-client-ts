@@ -39,6 +39,10 @@ export type AgentLlmParams = {
   frequencyPenalty: number;
 };
 
+export type FetchAgentArgs = {
+  agentId: string;
+};
+
 type ListTeamsResponse = {
   teams: ListTeamsResponseTeam[];
 }
@@ -121,5 +125,18 @@ export class AsteraiTeam {
     });
     const json = await response.json() as ListAgentsResponse;
     return json.apps;
+  }
+
+  public async fetchAgent(
+    args: FetchAgentArgs
+  ): Promise<AsteraiAgentInformation> {
+    let url = `${this.apiBaseUrl}/app/${args.agentId}/info`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${this.accountApiKey}`
+      },
+    });
+    return await response.json() as AsteraiAgentInformation;
   }
 }
