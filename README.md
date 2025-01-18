@@ -9,14 +9,14 @@ Have a look at the asterai documentation [here][docs].
 ### Query an agent and obtain a full text response back
 
 ```ts
-import { AsteraiClient } from "@asterai/client";
+import { AsteraiAgent } from "@asterai/client";
 
-const client = new AsteraiClient({
+const agent = new AsteraiAgent({
   appId: ASTERAI_APP_ID,
   queryKey: ASTERAI_PUBLIC_QUERY_KEY,
 });
 
-const response = await client.query({
+const response = await agent.query({
   query: "how's the weather like in NY?"
 });
 
@@ -26,14 +26,14 @@ console.log(await response.text());
 ### Query an agent and obtain a response back token by token
 
 ```ts
-import { AsteraiClient } from "@asterai/client";
+import { AsteraiAgent } from "@asterai/client";
 
-const client = new AsteraiClient({
+const agent = new AsteraiAgent({
   appId: ASTERAI_APP_ID,
   queryKey: ASTERAI_PUBLIC_QUERY_KEY,
 });
 
-const response = await client.query({
+const response = await agent.query({
   query: "how's the weather like in NY?"
 });
 
