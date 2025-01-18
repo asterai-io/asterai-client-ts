@@ -2,6 +2,7 @@ import { parse, Root, Type } from "protobufjs";
 import { Buffer } from "buffer";
 import { createParser } from "eventsource-parser";
 import { PassThrough } from "stream";
+import {DEFAULT_API_BASE_URL} from "./config";
 
 const TEXT_DECODER = new TextDecoder();
 
@@ -21,7 +22,7 @@ export class AsteraiAgent {
   /** The agent application ID. */
   public readonly appId: string;
   private readonly queryKey: string;
-  private readonly apiBaseUrl: string = "https://api.asterai.io";
+  private readonly apiBaseUrl: string = DEFAULT_API_BASE_URL;
   private protos: Root[] = [];
 
   public constructor(args: AsteraiAgentArgs) {
