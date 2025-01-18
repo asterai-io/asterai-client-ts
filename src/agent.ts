@@ -52,6 +52,9 @@ export class AsteraiAgent {
 
   /**
    * Create a new instance of this agent with a different query key.
+   *
+   * Read more about query keys here:
+   * https://docs.asterai.io/querying_an_app.html#query-keys
    */
   public withQueryKey(queryKey: string): AsteraiAgent {
     const agent = new AsteraiAgent({
