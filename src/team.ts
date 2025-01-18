@@ -37,7 +37,7 @@ export class AsteraiTeam {
     throw new Error("todo");
   }
 
-  public async fetchAgents(): Promise<AsteraiAgent[]> {
+  public async listAgents(): Promise<AsteraiAgent[]> {
     throw new Error("todo");
   }
 }
