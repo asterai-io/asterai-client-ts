@@ -15,11 +15,13 @@ export type ListTeamsArgs = {
  * the client side of a public web app.
  */
 export class AsteraiTeam {
-  private readonly id: string;
+  public readonly id: string;
+  public readonly name: string;
   private readonly accountApiKey: string;
 
-  private constructor(id: string, accountApiKey: string) {
+  private constructor(id: string, name: string, accountApiKey: string) {
     this.id = id;
+    this.name = name;
     this.accountApiKey = accountApiKey;
   }
 
