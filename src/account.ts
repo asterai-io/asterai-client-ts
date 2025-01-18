@@ -11,7 +11,7 @@ import {AsteraiTeam} from "./team";
  * the client side of a public web app.
  */
 export class AsteraiAccount {
-  private readonly id: string;
+  public readonly id: string;
   private readonly apiKey: string;
 
   private constructor(id: string, apiKey: string) {
